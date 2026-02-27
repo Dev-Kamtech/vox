@@ -13,6 +13,32 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../core/ui/layout.dart';
+
+// ---------------------------------------------------------------------------
+// List<Widget> extensions — convert widget lists into layout primitives
+// ---------------------------------------------------------------------------
+
+/// Convenience extensions for converting a [List<Widget>] into a layout.
+///
+/// Used primarily with [VoxListState.each]:
+/// ```dart
+/// todos.each((t) => label(t.title)).col        // Column
+/// todos.each((t) => label(t.title)).col.gap(8) // Column with spacing
+/// todos.each((t) => chip(t)).row               // Row
+/// todos.each((t) => card(t)).stack             // Stack
+/// ```
+extension VoxListWidgetExtensions on List<Widget> {
+  /// Wrap this list in a [VoxColumn].
+  VoxColumn get col => VoxColumn(this);
+
+  /// Wrap this list in a [VoxRow].
+  VoxRow get row => VoxRow(this);
+
+  /// Wrap this list in a [Stack].
+  Widget get stack => Stack(children: this);
+}
+
 /// Chainable modifiers on any [Widget].
 extension VoxWidgetExtensions on Widget {
   // ---------------------------------------------------------------------------
