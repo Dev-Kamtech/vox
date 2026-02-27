@@ -1,0 +1,18 @@
+name: vox_lint
+description: Custom lint rules for the vox Flutter framework. Catches misuse patterns and guides developers toward idiomatic vox code.
+version: 0.1.0
+homepage: https://github.com/Dev-Kamtech/vox
+repository: https://github.com/Dev-Kamtech/vox
+issue_tracker: https://github.com/Dev-Kamtech/vox/issues
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  # Lint rule DSL — provides DartLintRule, LintCode, PluginBase, etc.
+  custom_lint_builder: ^0.6.0
+  analyzer: ">=6.0.0 <8.0.0"
+
+dev_dependencies:
+  test: ^1.24.0
+  custom_lint: ^0.6.0
