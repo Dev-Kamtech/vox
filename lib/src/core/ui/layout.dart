@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../drawer/drawer_engine.dart';
+
 // ---------------------------------------------------------------------------
 // col() → VoxColumn
 // ---------------------------------------------------------------------------
@@ -119,12 +121,25 @@ class VoxRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Creates a screen layout with an AppBar and body.
-Widget screenLayout(String title, Widget body, {List<Widget>? actions}) {
+///
+/// Pass [drawer] (created via `drawer([...])`) to add a side navigation drawer.
+/// When a drawer is present, the Scaffold is registered with
+/// [VoxDrawerController] so `openDrawer()` / `closeDrawer()` work globally.
+Widget screenLayout(
+  String title,
+  Widget body, {
+  List<Widget>? actions,
+  VoxDrawer? drawer,
+  Widget? floatingActionButton,
+}) {
   return Scaffold(
+    key: drawer != null ? VoxDrawerController.scaffoldKey : null,
     appBar: AppBar(
       title: Text(title),
       actions: actions,
     ),
+    drawer: drawer,
+    floatingActionButton: floatingActionButton,
     body: SafeArea(child: body),
   );
 }

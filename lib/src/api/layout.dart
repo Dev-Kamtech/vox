@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../core/drawer/drawer_engine.dart';
 import '../core/ui/layout.dart' as core;
 
 export '../core/ui/layout.dart' show VoxColumn, VoxRow;
@@ -20,8 +21,23 @@ core.VoxColumn col(List<Widget> children) => core.VoxColumn(children);
 core.VoxRow row(List<Widget> children) => core.VoxRow(children);
 
 /// Screen layout with AppBar + body.
-Widget screen(String title, Widget body, {List<Widget>? actions}) =>
-    core.screenLayout(title, body, actions: actions);
+///
+/// Pass [drawer] (from `drawer([...])`) to add a side navigation drawer.
+/// Pass [floatingActionButton] to add an FAB.
+Widget screen(
+  String title,
+  Widget body, {
+  List<Widget>? actions,
+  VoxDrawer? drawer,
+  Widget? floatingActionButton,
+}) =>
+    core.screenLayout(
+      title,
+      body,
+      actions: actions,
+      drawer: drawer,
+      floatingActionButton: floatingActionButton,
+    );
 
 /// Layered layout (stack).
 Widget stack(List<Widget> children, {AlignmentGeometry? alignment}) =>

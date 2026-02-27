@@ -1,3 +1,12 @@
+## 0.4.0
+
+- **Phase 8 — Tabs**: `tabs([tab("Home", Icons.home, HomeScreen())])` — bottom navigation bar with `IndexedStack` state preservation. `topTabs("Title", [...])` — `AppBar` + `TabBar` + `TabBarView`. `tab()` factory for both.
+- **Phase 8 — Drawer**: `drawer([navItem("Home", Icons.home, onTap: ...)])` — side navigation drawer. `openDrawer()` / `closeDrawer()` work from anywhere without BuildContext. `screen()` gains `drawer:` and `floatingActionButton:` params.
+- **Phase 8 — Share**: `shareText()`, `shareLink()`, `shareFiles()` — native share sheet via `share_plus`. `VoxShare` static facade for direct calls.
+- **Phase 8 — Config / Env**: `VoxEnv.configure({...})` at startup, then `env("API_URL")` anywhere. `env("KEY", fallback: "value")` for safe access. Throws `VoxError` with a clear hint if key is missing.
+- **Phase 8 — Permissions**: `ask(VoxPermission.camera)`, `check(VoxPermission.location)` — runtime permission requests via `permission_handler`. `openPermissionSettings()` sends user to device settings.
+- **Phase 8 — Pickers**: `pickDate()`, `pickTime()`, `pickOne(options)`, `pickMany(options)` — context-free pickers using the global navigator key. All return `null` on cancel.
+
 ## 0.3.0
 
 - **Phase 7 — Animations**: `.animate(preset)` widget extension with built-in presets (`fade`, `scale`, `slide.fromBottom/Top/Left/Right`), chainable `.duration(ms)`, `anim<T>()` for smooth value-change transitions. `.hero(tag)` extension for shared-element transitions.
