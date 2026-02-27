@@ -1,6 +1,6 @@
 name: vox
 description: One import, full power. Write logic, not Flutter. A pseudo-code-like framework that hides boilerplate, never behavior.
-version: 0.4.0
+version: 0.5.0
 homepage: https://github.com/Dev-Kamtech/vox
 repository: https://github.com/Dev-Kamtech/vox
 issue_tracker: https://github.com/Dev-Kamtech/vox/issues

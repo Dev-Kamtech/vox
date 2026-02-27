@@ -1,3 +1,11 @@
+## 0.5.0
+
+- **Phase 9 — Testing**: `voxTest()` wraps `testWidgets` with a `VoxTester` API. `tester.render(screen)`, `tester.tap(btn('+'))`, `tester.type(field, text)`, `tester.expect(state, matcher)`. Smart matchers: `isVisible`, `isHidden`, `findsCount(n)`. Import via `package:vox/testing.dart` — separate from main barrel, test files only.
+- **Phase 10 — Locale / i18n**: `VoxLocale.configure({...})` with multi-language maps. `VoxLocale.set('fr')` switches language at runtime. `t('key')` and `t('welcome', {'name': 'Sam'})` for interpolation. Falls back to `'en'` if key missing in current language.
+- **Phase 11 — Realtime**: `ws("wss://...")` opens a `VoxSocket` connection. `socket.on("event", fn)` dispatches by `type`/`event` field in JSON. `socket.send({...})`, `socket.sendText()`, `socket.close()`. `socket.isConnected` bool property.
+- **Phase 12 — Model**: `VoxModel` abstract base class with `fromJson()`, `toJson()`, `listFromJson()`, and `copyWith()`. Prototype-factory pattern — extend to define type-safe JSON models.
+- **Phase 13 — pub.dev score**: Comprehensive README rewrite with full code examples for all 20+ features. Version bumped `0.4.0` → `0.5.0`.
+
 ## 0.4.0
 
 - **Phase 8 — Tabs**: `tabs([tab("Home", Icons.home, HomeScreen())])` — bottom navigation bar with `IndexedStack` state preservation. `topTabs("Title", [...])` — `AppBar` + `TabBar` + `TabBarView`. `tab()` factory for both.
