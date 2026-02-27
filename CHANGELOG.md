@@ -1,3 +1,11 @@
+## 0.3.0
+
+- **Phase 7 — Animations**: `.animate(preset)` widget extension with built-in presets (`fade`, `scale`, `slide.fromBottom/Top/Left/Right`), chainable `.duration(ms)`, `anim<T>()` for smooth value-change transitions. `.hero(tag)` extension for shared-element transitions.
+- **Phase 7 — Theme**: `VoxTheme` token class (`primary`, `background`, `surface`, `text`, `radius`, `dark`). `VoxThemeController` singleton for runtime switching (`vox.theme.toggle()`, `vox.theme.set(...)`). `voxApp(theme:)` now accepts `VoxTheme` (replaces raw `ThemeData`). App wraps `MaterialApp` in `ListenableBuilder` for reactive theme changes.
+- **Phase 7 — Device & Platform**: Global `vox` context — `vox.isIOS`, `vox.isAndroid`, `vox.isMobile`, `vox.isDesktop`, `vox.isWeb`. `vox.device.name` / `vox.device.os` via `device_info_plus`. `vox.theme.*` shortcuts.
+- **Phase 7 — DI**: `provide<T>()`, `use<T>()`, `has<T>()` — type-based service locator with no string keys. `VoxContainer.override<T>()` for test doubles.
+- `voxApp()` gains `init: Future<void> Function()?` — async startup hook called post-first-frame.
+
 ## 0.2.0
 
 - **Phase 4 — Reactive state fully wired**: `shared()` (app-global state), `computed()` (derived signals with dependency tracking), `watch()` (side-effect listener), `stored()` (persisted state via SharedPreferences), `VoxListState` operations (`each`, `where`, `search`, `sort`, `paginate`), `List<Widget>` extensions (`.col`, `.row`, `.stack`)
