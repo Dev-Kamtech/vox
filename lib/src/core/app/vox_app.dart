@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../nav/router.dart';
 import '../screen/vox_screen.dart';
 
 /// The internal app runner. Called by [voxApp] in the API layer.
@@ -18,6 +19,7 @@ void voxAppRunner({
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(MaterialApp(
+    navigatorKey: VoxRouter.key,
     title: title,
     theme: theme ?? ThemeData.light(useMaterial3: true),
     darkTheme: darkTheme,

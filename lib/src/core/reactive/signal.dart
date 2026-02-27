@@ -80,6 +80,12 @@ class VoxSignal<T> {
   /// would be incorrect (e.g., inside update()).
   T get peek => _value;
 
+  /// Directly add a listener (bypasses VoxTracker).
+  /// Used by watch() for out-of-build subscriptions.
+  void addListener(VoidCallback listener) {
+    _listeners.add(listener);
+  }
+
   /// Remove a specific listener. Called during screen unsubscribe.
   void removeListener(VoidCallback listener) {
     _listeners.remove(listener);

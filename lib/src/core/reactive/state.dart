@@ -72,4 +72,46 @@ class VoxListState<T> extends VoxSignal<List<T>> {
 
   /// First item, or null if empty. Tracked.
   T? get first => val.isEmpty ? null : val.first;
+
+  // ---------------------------------------------------------------------------
+  // Iteration / projection (all tracked — reading screens rebuild on change)
+  // ---------------------------------------------------------------------------
+
+  /// Map each item to [R] and return the results as a [List<R>].
+  ///
+  /// ```dart
+  /// todos.each((t) => label(t.title))  // List<Widget>
+  ///   .col                              // wrap in a Column
+  /// ```
+  List<R> each<R>(R Function(T item) fn) => val.map(fn).toList();
+
+  /// Return items matching [test]. Tracked.
+  List<T> where(bool Function(T item) test) => val.where(test).toList();
+
+  /// Case-insensitive substring search.
+  ///
+  /// [by] extracts the searchable string from each item.
+  /// Returns all items when [query] is empty.
+  List<T> search({
+    required String Function(T item) by,
+    required String query,
+  }) {
+    if (query.isEmpty) return val; // tracked
+    final q = query.toLowerCase();
+    return val.where((item) => by(item).toLowerCase().contains(q)).toList();
+  }
+
+  /// Sort the list in-place by [by] comparator (or natural order if omitted).
+  /// Notifies all listening screens.
+  void sort([Comparator<T>? by]) {
+    peek.sort(by);
+    notify();
+  }
+
+  /// Return a page of [size] items starting at [offset]. Tracked.
+  List<T> paginate(int size, {int offset = 0}) {
+    final list = val; // tracked
+    if (offset >= list.length) return [];
+    return list.skip(offset).take(size).toList();
+  }
 }
