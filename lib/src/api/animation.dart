@@ -1,0 +1,2 @@
+/// vox api: animation
+library;

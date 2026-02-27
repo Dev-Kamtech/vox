@@ -1,16 +1,11 @@
-import 'package:vox/vox.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
+/// Placeholder — real tests come in Phase 10 (pub.dev prep).
 void main() {
-  group('A group of tests', () {
-    final awesome = Awesome();
-
-    setUp(() {
-      // Additional setup goes here.
-    });
-
-    test('First Test', () {
-      expect(awesome.isAwesome, isTrue);
+  group('vox', () {
+    test('placeholder', () {
+      // Phase 3+ will add real tests as modules are implemented.
+      expect(true, isTrue);
     });
   });
 }

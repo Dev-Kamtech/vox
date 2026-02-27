@@ -1,0 +1,13 @@
+name: vox_example
+description: Example app demonstrating vox usage.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.8
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  vox:
+    path: ../

@@ -1,15 +1,49 @@
 name: vox
-description: A starting point for Dart libraries or applications.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: One import, full power. Write logic, not Flutter. A pseudo-code-like framework that hides boilerplate, never behavior.
+version: 0.1.0
+homepage: https://github.com/Dev-Kamtech/vox
+repository: https://github.com/Dev-Kamtech/vox
+issue_tracker: https://github.com/Dev-Kamtech/vox/issues
 
 environment:
   sdk: ^3.10.8
+  flutter: ">=3.10.0"
 
-# Add regular dependencies here.
 dependencies:
-  # path: ^1.9.0
+  flutter:
+    sdk: flutter
+
+  # HTTP
+  dio: ^5.4.0
+
+  # Local storage
+  shared_preferences: ^2.2.0
+
+  # Secure storage
+  flutter_secure_storage: ^9.0.0
+
+  # Permissions
+  permission_handler: ^11.0.0
+
+  # Connectivity
+  connectivity_plus: ^6.0.0
+
+  # Device info
+  device_info_plus: ^10.0.0
+
+  # Share
+  share_plus: ^9.0.0
+
+  # Image caching
+  cached_network_image: ^3.3.0
+
+  # WebSocket (dart:io built-in, but web_socket_channel for cross-platform)
+  web_socket_channel: ^3.0.0
 
 dev_dependencies:
-  lints: ^6.0.0
-  test: ^1.25.6
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  # No assets or fonts — vox is a logic package, not a design system

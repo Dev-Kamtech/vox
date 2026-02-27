@@ -1,0 +1,2 @@
+/// vox core: connectivity
+library;

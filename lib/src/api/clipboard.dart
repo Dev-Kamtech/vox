@@ -1,0 +1,2 @@
+/// vox api: clipboard
+library;
