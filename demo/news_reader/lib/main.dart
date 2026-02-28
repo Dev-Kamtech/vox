@@ -71,11 +71,12 @@ class Article extends VoxModel {
 }
 
 // ── DATA SOURCES ──────────────────────────────────────────────────────────────
+// Real articles from dev.to (free, no key). Bookmarks saved on device.
 
-final _articles      = state(<Article>[]);
-final _bookmarks     = state(<String>{});
+final _articles       = state(<Article>[]);
+final _bookmarks      = state(<String>{});
 final _activeCategory = state('All');
-final _isLoading     = state(true);
+final _isLoading      = state(true);
 
 Future<void> _boot() async {
   final saved = await load('bookmarks');
@@ -87,8 +88,38 @@ Future<void> _boot() async {
 
 Future<void> _fetchFeed() async {
   _isLoading.set(true);
-  await Future<void>.delayed(const Duration(milliseconds: 900));
-  _articles.set(_mockArticles());
+  try {
+    final cat = _activeCategory.peek;
+    final url = cat == 'All'
+        ? 'https://dev.to/api/articles?top=7&per_page=20'
+        : 'https://dev.to/api/articles?tag=${cat.toLowerCase()}&per_page=20';
+
+    final raw = await fetch(url) as List<dynamic>;
+
+    _articles.set(raw.cast<Map<String, dynamic>>().map((j) {
+      final user     = j['user']         as Map<String, dynamic>? ?? {};
+      final tags     = j['tag_list']     as List<dynamic>? ?? [];
+      final cover    = j['cover_image']  as String?;
+      final id       = (j['id'] as num).toInt();
+      final category = tags.isNotEmpty
+          ? _capitalise(tags.first.toString())
+          : 'Tech';
+      return Article(
+        id:          id.toString(),
+        title:       (j['title']        as String? ?? '').trim(),
+        summary:     (j['description']  as String? ?? '').trim(),
+        imageUrl:    cover ?? 'https://picsum.photos/seed/$id/600/400',
+        source:      (user['name']       as String? ?? 'Dev.to').trim(),
+        category:    category,
+        publishedAt: DateTime.tryParse(j['published_at'] as String? ?? '') ??
+            DateTime.now(),
+        readMins:    (j['reading_time_minutes'] as num?)?.toInt() ?? 3,
+      );
+    }).toList());
+  } catch (_) {
+    // Network unavailable — clear the list so the empty state shows.
+    _articles.set([]);
+  }
   _isLoading.set(false);
 }
 
@@ -99,6 +130,11 @@ Future<void> _toggleBookmark(String id) async {
   current.contains(id) ? current.remove(id) : current.add(id);
   _bookmarks.set(current);
   await save('bookmarks', current.toList());
+}
+
+void _setCategory(String cat) {
+  _activeCategory.set(cat);
+  _fetchFeed();
 }
 
 // ── SCREENS ───────────────────────────────────────────────────────────────────
@@ -185,8 +221,6 @@ class ArticleScreen extends VoxScreen {
           divider.pad(h: 20),
           gap(16),
           label(article.summary).size(15).color(_text).pad(h: 20),
-          gap(12),
-          label(_loremBody).size(15).color(_textDim).pad(h: 20),
           gap(40),
         ]).scrollable.expand,
       ]),
@@ -244,7 +278,7 @@ Widget _categoryChip(String text, bool active) =>
         .pad(h: 14, v: 8)
         .bg(active ? _accent : _tagBg)
         .round(20)
-        .tap(() => _activeCategory.set(text));
+        .tap(() => _setCategory(text));
 
 Widget _feed(List<Article> articles, Set<String> bookmarkIds) {
   if (articles.isEmpty) {
@@ -383,65 +417,15 @@ Widget _tagChip(String text) =>
         .bg(const Color(0x264F8EF7))
         .round(6);
 
-// ── CONSTANTS / MOCK DATA ─────────────────────────────────────────────────────
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+// Categories map 1:1 to dev.to tags (lowercased when fetching).
 
-const _categories = ['All', 'Tech', 'Science', 'Business', 'Design', 'Health'];
-
-const _loremBody =
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod '
-    'tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim '
-    'veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea '
-    'commodo consequat.\n\n'
-    'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum '
-    'dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non '
-    'proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
-
-List<Article> _mockArticles() => [
-      Article(id: '1', category: 'Tech',
-        title: 'The Future of AI: How Large Language Models Are Reshaping Software',
-        summary: 'Developers everywhere are rethinking how they write code as AI copilots become standard tools.',
-        imageUrl: 'https://picsum.photos/seed/tech1/600/400',
-        source: 'Tech Insider',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 1)), readMins: 5),
-      Article(id: '2', category: 'Science',
-        title: 'Webb Telescope Reveals Galaxies Older Than Previously Thought',
-        summary: 'New imagery pushes back the formation date of mature galaxies by hundreds of millions of years.',
-        imageUrl: 'https://picsum.photos/seed/space2/600/400',
-        source: 'Space Daily',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 3)), readMins: 4),
-      Article(id: '3', category: 'Design',
-        title: 'Why Micro-interactions Are the Secret Sauce of Memorable UX',
-        summary: 'Small animations create the difference between apps users tolerate and ones they love.',
-        imageUrl: 'https://picsum.photos/seed/design3/600/400',
-        source: 'UX Collective',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 5)), readMins: 3),
-      Article(id: '4', category: 'Business',
-        title: 'Startup Funding Falls 30% as Investors Tighten Requirements',
-        summary: 'VC firms are now demanding stronger unit economics before committing early-stage rounds.',
-        imageUrl: 'https://picsum.photos/seed/biz4/600/400',
-        source: 'Financial View',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 7)), readMins: 6),
-      Article(id: '5', category: 'Health',
-        title: 'Sleep Quality Over Quantity: New Research Reframes the 8-Hour Rule',
-        summary: 'Scientists find deep sleep stages matter far more than raw hours for cognitive performance.',
-        imageUrl: 'https://picsum.photos/seed/health5/600/400',
-        source: 'Wellness Today',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 9)), readMins: 4),
-      Article(id: '6', category: 'Tech',
-        title: 'Flutter 4.0 Lands with Wasm Compilation and Hot Reload for Web',
-        summary: 'Google doubles down on cross-platform with a faster rendering engine.',
-        imageUrl: 'https://picsum.photos/seed/flutter6/600/400',
-        source: 'Dev Weekly',
-        publishedAt: DateTime.now().subtract(const Duration(hours: 11)), readMins: 5),
-      Article(id: '7', category: 'Science',
-        title: 'Researchers Achieve Breakthrough in Room-Temperature Superconductors',
-        summary: 'A South Korea team reports stable superconductivity at 22°C.',
-        imageUrl: 'https://picsum.photos/seed/science7/600/400',
-        source: 'Nature Brief',
-        publishedAt: DateTime.now().subtract(const Duration(days: 1)), readMins: 7),
-    ];
+const _categories = ['All', 'Flutter', 'Dart', 'JavaScript', 'Python', 'AI', 'DevOps'];
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
+
+String _capitalise(String s) =>
+    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
 String _timeAgo(DateTime dt) {
   final d = DateTime.now().difference(dt);

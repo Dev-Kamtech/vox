@@ -1,20 +1,17 @@
 import 'package:vox/vox.dart';
 
 // ── THEME ────────────────────────────────────────────────────────────────────
-// Very black with a whisper of green. Orange is the bot. White is the voice.
 
-const _void     = Color(0xFF050A05);   // near-pure black, barely green
-const _surface  = Color(0xFF0B130B);   // one shade up
-const _surface2 = Color(0xFF111B11);   // card / input bg
-const _surface3 = Color(0xFF162016);   // slightly lighter card
-
-const _bot      = Color(0xFFFF6D3B);   // bot orange — warm, Claude-like
-const _botGlow  = Color(0x28FF6D3B);   // faint orange glow
-const _botDeep  = Color(0x14FF6D3B);   // very faint, for bot bubble bg
-
-const _text     = Color(0xFFF5F5F5);   // clean white
-const _textDim  = Color(0xFF4A6A4A);   // greenish-grey, very muted
-const _border   = Color(0xFF172117);   // barely-visible green border
+const _void     = Color(0xFF050A05);
+const _surface  = Color(0xFF0B130B);
+const _surface2 = Color(0xFF111B11);
+const _surface3 = Color(0xFF162016);
+const _bot      = Color(0xFFFF6D3B);
+const _botGlow  = Color(0x28FF6D3B);
+const _botDeep  = Color(0x14FF6D3B);
+const _text     = Color(0xFFF5F5F5);
+const _textDim  = Color(0xFF4A6A4A);
+const _border   = Color(0xFF172117);
 
 // ── ENTRY ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +27,7 @@ void main() => voxApp(
           surface: _surface, text: _text, radius: 16,
         ),
       ),
+      init: _boot,
       home: SplashScreen(),
     );
 
@@ -61,15 +59,24 @@ class Msg extends VoxModel {
 }
 
 // ── DATA SOURCES ──────────────────────────────────────────────────────────────
-// The conversation. Whether the bot is thinking. How much it pulses.
 
-final _msgs       = state(<Msg>[]);
-final _thinking   = state(false);
-final _pulse      = state(1.0);   // drives the breathing animation
+final _msgs      = state(<Msg>[]);
+final _thinking  = state(false);
+final _pulse     = state(1.0);
+final _apiKey    = state<String?>(null);  // null = not set yet
+final _bootDone  = state(false);          // true after secure-storage check
 
 // ── DATA ACTIONS ──────────────────────────────────────────────────────────────
 
 VoidCallback? _pulseTimer;
+
+Future<void> _boot() async {
+  final stored = await loadSecure('gemini_key');
+  if (stored is String && stored.isNotEmpty) {
+    _apiKey.set(stored);
+  }
+  _bootDone.set(true);
+}
 
 void _userSend(String text) {
   _msgs.update((list) => [
@@ -77,16 +84,70 @@ void _userSend(String text) {
     Msg(id: _id(), text: text, fromUser: true),
   ]);
   _beginThinking();
-  delay(
-    Duration(milliseconds: 1600 + text.length * 18),
-    () {
-      _endThinking();
-      _msgs.update((list) => [
-        ...list,
-        Msg(id: _id(), text: _reply(text), fromUser: false),
-      ]);
-    },
-  );
+  _geminiCall(); // unawaited — async, updates state when done
+}
+
+// Calls Gemini with the full conversation history (last 20 turns).
+void _geminiCall() async {
+  final key      = _apiKey.peek;
+  if (key == null) { _endThinking(); return; }
+
+  final history  = _msgs.peek.reversed.take(20).toList().reversed.toList();
+  final contents = history.map((m) => {
+    'role':  m.fromUser ? 'user' : 'model',
+    'parts': [{'text': m.text}],
+  }).toList();
+
+  try {
+    final url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+        'gemini-1.5-flash:generateContent?key=$key';
+
+    final result = await post(
+      url,
+      body: {
+        'system_instruction': {
+          'parts': [{'text': _systemPrompt}],
+        },
+        'contents': contents,
+        'generationConfig': {
+          'temperature': 0.85,
+          'maxOutputTokens': 800,
+        },
+      },
+    ) as Map<String, dynamic>;
+
+    final text =
+        ((result['candidates'] as List).first['content']['parts'] as List)
+            .first['text'] as String;
+
+    _endThinking();
+    _msgs.update((list) => [
+      ...list,
+      Msg(id: _id(), text: text.trim(), fromUser: false),
+    ]);
+  } catch (_) {
+    _endThinking();
+    _msgs.update((list) => [
+      ...list,
+      Msg(
+        id: _id(),
+        text: 'Something went wrong. '
+            'Check your API key or internet connection.',
+        fromUser: false,
+      ),
+    ]);
+  }
+}
+
+void _saveKey(String key) async {
+  await saveSecure('gemini_key', key);
+  _apiKey.set(key);
+}
+
+void _clearKey() async {
+  await removeSecure('gemini_key');
+  _apiKey.set(null);
+  _msgs.set([]);
 }
 
 void _beginThinking() {
@@ -106,12 +167,20 @@ void _endThinking() {
 
 String _id() => DateTime.now().microsecondsSinceEpoch.toString();
 
+const _systemPrompt =
+    'You are Aether, a sharp and friendly AI assistant built into a Flutter '
+    'app called Aether, powered by the vox framework — a Flutter package '
+    'that gives full-stack app capabilities with one import. '
+    'Be concise, warm, and genuinely helpful. When vox is relevant, '
+    'mention it naturally. Keep responses to 2–4 sentences unless '
+    'the user clearly wants more detail.';
+
 // ── SCREENS ───────────────────────────────────────────────────────────────────
 
 class SplashScreen extends VoxScreen {
   @override
   void ready() => delay(
-      const Duration(milliseconds: 2600),
+      const Duration(milliseconds: 2400),
       () => go(BotScreen(), replace: true));
 
   @override
@@ -133,18 +202,84 @@ class SplashScreen extends VoxScreen {
 }
 
 class BotScreen extends VoxScreen {
-  final _field = field(initial: '', hint: 'Ask anything...');
-  late final _form = voxForm({'msg': _field});
+  // Chat input
+  final _msgField = field(initial: '', hint: 'Ask anything...');
+  late final _form = voxForm({'msg': _msgField});
+
+  // Key setup input
+  final _keyField = field(initial: '', hint: 'Paste your Gemini API key here');
+  late final _keyForm = voxForm({'key': _keyField});
 
   @override
   Widget get view {
-    final msgs    = _msgs.val;
-    final busy    = _thinking.val;
-    final pulse   = _pulse.val;
+    final bootDone = _bootDone.val;
+    final apiKey   = _apiKey.val;
+    final msgs     = _msgs.val;
+    final busy     = _thinking.val;
+    final pulse    = _pulse.val;
 
+    // ── Loading ─────────────────────────────────────────────────────────────
+    if (!bootDone) {
+      return scaffold(
+        loader(size: 32, color: _bot).center,
+        bg: _void,
+      );
+    }
+
+    // ── Key setup ───────────────────────────────────────────────────────────
+    if (apiKey == null) {
+      return scaffold(
+        safe(col([
+          gap(20),
+          _botAvatar(64).animate(scale).duration(500).center,
+          gap(20),
+          label('Connect Aether to Gemini')
+              .heavy.size(22).color(_text).center,
+          gap(8),
+          label('Aether uses Google Gemini to respond.\nGet a free key in 2 minutes.')
+              .size(14).color(_textDim).center,
+          gap(32),
+          // Step list
+          _setupStep('1', 'Go to aistudio.google.com'),
+          gap(10),
+          _setupStep('2', 'Sign in with any Google account'),
+          gap(10),
+          _setupStep('3', 'Tap "Get API key" → "Create API key"'),
+          gap(10),
+          _setupStep('4', 'Copy and paste it below'),
+          gap(28),
+          // Key input
+          card(
+            _keyField.input,
+            color: _surface2,
+            borderColor: _border,
+            radius: 14,
+            pad: 4,
+          ),
+          gap(14),
+          label('Connect')
+              .semibold
+              .size(15)
+              .color(Colors.white)
+              .center
+              .pad(v: 14)
+              .bg(_bot)
+              .round(14)
+              .tap(_doSaveKey),
+          gap(8),
+          label('Free tier · 1,500 req/day · your key stays on your device')
+              .size(11)
+              .color(_textDim)
+              .center,
+        ]).pad(h: 24).scrollable),
+        bg: _void,
+      );
+    }
+
+    // ── Chat ─────────────────────────────────────────────────────────────────
     return scaffold(
       col([
-        // ── Header ────────────────────────────────────────────────────────
+        // Header
         safe(
           row([
             anim(pulse,
@@ -155,26 +290,24 @@ class BotScreen extends VoxScreen {
             col([
               label('Aether').semibold.size(17).color(_text),
               row([
-                space(7)
-                    .bg(busy ? _bot : _textDim)
-                    .round(4)
-                    .animate(scale),
+                space(7).bg(busy ? _bot : _textDim).round(4).animate(scale),
                 hgap(6),
-                anim(busy ? 1.0 : 0.0,
-                  builder: (_) => label(busy ? 'Thinking...' : 'Ready')
-                      .size(11)
-                      .color(busy ? _bot : _textDim),
-                  duration: const Duration(milliseconds: 200),
-                ),
+                label(busy ? 'Thinking...' : 'Ready')
+                    .size(11).color(busy ? _bot : _textDim),
               ]),
             ]).left.expand,
-            icon(Icons.info_outline_rounded, color: _textDim, size: 20)
-                .pad(all: 6),
+            icon(Icons.logout_rounded, color: _textDim, size: 20)
+                .pad(all: 6)
+                .tap(() => confirm(
+                      'Change API key?',
+                      message: 'This will clear the conversation and return to setup.',
+                    ).then((ok) { if (ok) _clearKey(); }),
+                ),
           ]).pad(h: 16, v: 12),
           bottom: false,
         ).bg(_surface).border(_border),
 
-        // ── Messages ──────────────────────────────────────────────────────
+        // Messages
         when(
           msgs.isEmpty && !busy,
           _emptyState(),
@@ -185,18 +318,17 @@ class BotScreen extends VoxScreen {
             list(
               msgs.reversed.toList(),
               (m, i) => _bubble(m),
-              padTop: 16,
-              padBottom: 8,
+              padTop: 16, padBottom: 8,
               reverse: true,
             ).expand,
             when(busy, _thinkingBubble(pulse)),
           ]).stretched.expand,
         ),
 
-        // ── Input bar ─────────────────────────────────────────────────────
+        // Input
         safe(
           row([
-            _field.input.expand,
+            _msgField.input.expand,
             hgap(10),
             _sendBtn(busy),
           ]).pad(h: 14, v: 10),
@@ -210,17 +342,10 @@ class BotScreen extends VoxScreen {
   Widget _sendBtn(bool busy) => anim(
         busy ? 0.78 : 1.0,
         builder: (v) => icon(
-          busy
-              ? Icons.hourglass_top_rounded
-              : Icons.arrow_upward_rounded,
+          busy ? Icons.hourglass_top_rounded : Icons.arrow_upward_rounded,
           color: Colors.white,
           size: 17,
-        )
-            .center
-            .sized(44, 44)
-            .bg(busy ? _surface3 : _bot)
-            .round(22)
-            .scaleBy(v),
+        ).center.sized(44, 44).bg(busy ? _surface3 : _bot).round(22).scaleBy(v),
         duration: const Duration(milliseconds: 300),
       ).tap(busy ? () {} : _submit);
 
@@ -230,17 +355,21 @@ class BotScreen extends VoxScreen {
     _form.reset();
     _userSend(text);
   }
+
+  void _doSaveKey() {
+    final key = _keyForm['key']!.peek.trim();
+    if (key.length < 20) return; // clearly not a valid key
+    _saveKey(key);
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═════════════════════════════════════════════════════════════════════════════
 
-// The bot's face — orange rounded square with the spark icon.
 Widget _botAvatar(double size) => card(
       icon(Icons.auto_awesome_rounded, color: Colors.white, size: size * 0.46)
-          .center
-          .sized(size, size),
+          .center.sized(size, size),
       color:       _bot,
       borderColor: _botGlow,
       radius:      size * 0.28,
@@ -252,53 +381,50 @@ Widget _wordmark() => row([
       label('x').heavy.size(42).color(_bot),
     ]);
 
-// Empty state — shown when conversation is blank.
+Widget _setupStep(String num, String text) => row([
+      label(num)
+          .semibold.size(12).color(_bot)
+          .center.sized(26, 26)
+          .bg(_botDeep).round(13),
+      hgap(12),
+      label(text).size(14).color(_text).expand,
+    ]);
+
 Widget _emptyState() => col([
       gap(50),
       _botAvatar(72).animate(scale).duration(600),
       gap(24),
       label('Hi, I\'m Aether').heavy.size(24).color(_text).center,
       gap(8),
-      label('Built with vox  ·  Ask me anything')
+      label('Powered by Gemini  ·  Ask me anything')
           .size(14).color(_textDim).center,
       gap(36),
-      _chip('What is vox?'),
+      _chip('What can you do?'),
       gap(10),
       _chip('Tell me something interesting'),
       gap(10),
-      _chip('How does this app work?'),
+      _chip('What is the vox framework?'),
     ]).centered.center.expand;
 
 Widget _chip(String text) => label(text)
-    .size(13)
-    .color(_textDim)
+    .size(13).color(_textDim)
     .pad(h: 18, v: 10)
-    .bg(_surface2)
-    .round(22)
-    .border(_border)
+    .bg(_surface2).round(22).border(_border)
     .tap(() => _userSend(text));
 
-// A single chat bubble — slides in from the correct side.
 Widget _bubble(Msg m) {
   final isUser = m.fromUser;
   return row([
     if (!isUser) _botAvatar(28).pad(right: 8, bottom: 16),
     if (isUser) spacer,
     col([
-      label(m.text)
-          .size(14)
-          .color(_text)
+      label(m.text).size(14).color(_text)
           .pad(h: 14, v: 10)
           .bg(isUser ? _surface2 : _botDeep)
           .round(18)
-          .border(
-            isUser ? _border : _botGlow,
-            radius: 18,
-          ),
+          .border(isUser ? _border : _botGlow, radius: 18),
       gap(3),
-      label(_time(m.at))
-          .size(10)
-          .color(_textDim)
+      label(_time(m.at)).size(10).color(_textDim)
           .alignTo(isUser ? Alignment.centerRight : Alignment.centerLeft),
     ]).maxW(290),
     if (!isUser) spacer,
@@ -308,97 +434,33 @@ Widget _bubble(Msg m) {
       .duration(260);
 }
 
-// The "thinking" indicator — bot avatar pulses, dots breathe.
 Widget _thinkingBubble(double pulse) => row([
-      anim(
-        pulse,
+      anim(pulse,
         builder: (v) => _botAvatar(28).scaleBy(v).pad(right: 8, bottom: 14),
         duration: const Duration(milliseconds: 650),
       ),
       col([
         row([
-          _pulseDot(pulse, 0),
-          hgap(5),
-          _pulseDot(pulse, 1),
-          hgap(5),
+          _pulseDot(pulse, 0), hgap(5),
+          _pulseDot(pulse, 1), hgap(5),
           _pulseDot(pulse, 2),
         ])
             .pad(h: 16, v: 13)
-            .bg(_botDeep)
-            .round(18)
-            .border(_botGlow, radius: 18),
+            .bg(_botDeep).round(18).border(_botGlow, radius: 18),
         gap(3),
         label('Thinking...').size(10).color(_bot),
       ]),
       spacer,
     ]).pad(h: 16, v: 4).animate(fade).duration(200);
 
-// Each dot gets a slightly offset scale so they feel staggered.
 Widget _pulseDot(double pulse, int index) {
-  // Offset each dot's effective pulse by a phase so they cascade.
   final offsets = [0.0, 0.15, 0.30];
   final effective = ((pulse - 0.82) / 0.30 + offsets[index]).clamp(0.0, 1.0);
-  final dotScale = 0.7 + effective * 0.6;
-
   return anim(
-    dotScale,
+    0.7 + effective * 0.6,
     builder: (v) => space(7).bg(_bot).round(4).scaleBy(v),
     duration: const Duration(milliseconds: 400),
   );
-}
-
-// ── REPLIES ───────────────────────────────────────────────────────────────────
-
-String _reply(String input) {
-  final q = input.toLowerCase();
-
-  if (q.contains('vox')) {
-    return 'vox is a Flutter framework built around one idea: one import should be enough. '
-        'No boilerplate, no BuildContext, no raw widgets — just clean, '
-        'flow-based code that reads like what the app does.';
-  }
-  if (q.contains('hello') || q.contains('hi') || q.contains('hey')) {
-    return 'Hey! I\'m Aether — an AI assistant built entirely with vox. '
-        'One import, full power. What\'s on your mind?';
-  }
-  if (q.contains('how') && q.contains('work')) {
-    return 'This whole app — the chat UI, animations, state, storage — '
-        'is powered by vox. The dev wrote one import and got everything else for free.';
-  }
-  if (q.contains('interesting') || q.contains('tell me')) {
-    final facts = [
-      'Octopuses have three hearts and blue blood. Two hearts pump blood to the gills; the third pumps it to the body.',
-      'The average person walks about 100,000 miles in a lifetime — roughly four times around the Earth.',
-      'Honey never spoils. Archaeologists have found 3,000-year-old honey in Egyptian tombs — still edible.',
-      'A group of flamingos is called a "flamboyance." A group of crows is called a "murder."',
-      'The shortest war in history lasted 38 to 45 minutes — the Anglo-Zanzibar War of 1896.',
-    ];
-    return facts[input.length % facts.length];
-  }
-  if (q.contains('color') || q.contains('design') || q.contains('dark') || q.contains('orange')) {
-    return 'The palette here is near-pure black with a whisper of green — '
-        'almost invisible but it keeps the darkness from feeling flat. '
-        'Orange is reserved for me, because warm stands out on dark.';
-  }
-  if (q.contains('flutter') || q.contains('dart')) {
-    return 'Flutter is powerful, but it comes with a lot of ceremony. '
-        'vox wraps Flutter so that you write the idea, not the plumbing. '
-        'One `col([...])` instead of `Column(children: [...])`. That kind of thing.';
-  }
-  if (q.contains('who') && (q.contains('you') || q.contains('made'))) {
-    return 'I\'m Aether, a demo chatbot built with vox to show what\'s possible '
-        'with just one import. In a real app, you\'d wire me to Gemini or any LLM.';
-  }
-
-  // Generic fallbacks — rotated by input length so they vary.
-  const fallbacks = [
-    'Good question. vox was designed so that questions like that don\'t require ten files to answer.',
-    'I\'m still learning, but here\'s what I know: vox makes apps that feel like this one surprisingly fast to build.',
-    'Honest answer? I\'m a demo bot. But the tech behind me — vox — is very real and very fast.',
-    'That\'s worth thinking about. The best tools disappear and let you focus on the idea, not the tool.',
-    'Let me put it this way: if building this UI took more than an afternoon, something\'s wrong with the framework.',
-  ];
-  return fallbacks[input.length % fallbacks.length];
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────────────
