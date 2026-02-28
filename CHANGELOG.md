@@ -1,3 +1,10 @@
+## 0.7.0
+
+- **`rx()` — granular reactive sub-widget**: Wraps a builder in an isolated rebuild scope. Only this widget rebuilds when its signals change — the parent `VoxScreen` is untouched. Solves the senior-dev critique of screen-level rebuild granularity.
+- **Auto-dispose for `watch()`**: Any `watch()` call inside `ready()` is now automatically disposed when the screen/widget leaves the tree. No more manual `_stop?.call()` in `onDispose()`. Early cancellation via the returned callback still works.
+- **Circular computed guard**: `computed()` now throws a clean `VoxError` if a dependency cycle is detected (e.g. `a` depends on `b`, `b` depends on `a`), instead of hanging in an infinite loop.
+- **Feature freeze**: No new APIs. Phase 16 is depth, not width — stabilize, stress-test, sharpen.
+
 ## 0.6.0
 
 - **Demo apps**: Three production-quality example apps — `demo/todo_app` (local persistence), `demo/news_reader` (real Dev.to API), `demo/chat_app` (Gemini AI chatbot with per-user key via `saveSecure()`).

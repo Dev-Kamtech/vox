@@ -15,7 +15,8 @@ export '../core/reactive/shared.dart' show VoxShared;
 export '../core/reactive/computed.dart' show VoxComputed;
 export '../core/reactive/stored.dart' show VoxStored;
 
-import 'dart:ui' show VoidCallback;
+import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart' show VoidCallback;
 
 import '../core/reactive/state.dart';
 import '../core/reactive/shared.dart';
@@ -24,6 +25,7 @@ import '../core/reactive/computed.dart';
 import '../core/reactive/signal.dart';
 import '../core/reactive/watcher.dart' as watcher_lib;
 import '../core/reactive/stored.dart';
+import '../core/reactive/rx_widget.dart';
 
 // ---------------------------------------------------------------------------
 // Factories
@@ -91,3 +93,20 @@ VoidCallback watch<T>(VoxSignal<T> signal, void Function(T value) callback) =>
 /// ```
 VoxStored<T> stored<T>(String key, T defaultValue) =>
     VoxStored<T>(key, defaultValue);
+
+/// Granular reactive sub-widget. Only rebuilds when signals read inside
+/// [builder] change — the parent [VoxScreen] is NOT rebuilt.
+///
+/// Use inside a screen's [view] to scope hot rebuilds to a specific subtree:
+///
+/// ```dart
+/// get view => col([
+///   label('Static header'),           // never rebuilds
+///   rx(() => label('${count.val}')),  // rebuilds ONLY when count changes
+///   label('Static footer'),           // never rebuilds
+/// ]);
+/// ```
+///
+/// Unlike reading `count.val` directly in [VoxScreen.view] (which rebuilds
+/// the entire screen), `rx()` isolates the rebuild to just this widget.
+Widget rx(Widget Function() builder) => RxWidget(builder);

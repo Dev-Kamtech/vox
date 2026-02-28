@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide State;
 import 'package:flutter/material.dart' as flutter show State;
 
 import '../reactive/signal.dart';
+import '../reactive/auto_dispose.dart';
 import '../screen/lifecycle.dart';
 
 /// A reusable sub-component with its own local state.
@@ -43,13 +44,16 @@ class _VoxWidgetWrapper extends StatefulWidget {
 class _VoxWidgetState extends flutter.State<_VoxWidgetWrapper> {
   late final VoidCallback _rebuildCallback;
   final Set<VoxSignal> _subscribedSignals = {};
+  List<VoidCallback> _watchDisposers = const [];
 
   @override
   void initState() {
     super.initState();
     _rebuildCallback = _scheduleRebuild;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      VoxAutoDispose.begin();
       widget.voxWidget.ready();
+      _watchDisposers = VoxAutoDispose.end();
     });
   }
 
@@ -83,6 +87,9 @@ class _VoxWidgetState extends flutter.State<_VoxWidgetWrapper> {
   @override
   void dispose() {
     _unsubscribeAll();
+    for (final d in _watchDisposers) {
+      d();
+    }
     widget.voxWidget.onDispose();
     super.dispose();
   }

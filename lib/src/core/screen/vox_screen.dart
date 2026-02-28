@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide State;
 import 'package:flutter/material.dart' as flutter show State;
 
 import '../reactive/signal.dart';
+import '../reactive/auto_dispose.dart';
 import 'lifecycle.dart';
 
 /// The base class developers extend to create screens.
@@ -45,11 +46,13 @@ class _VoxScreenWidget extends StatefulWidget {
 /// Manages:
 /// - Signal tracking during build (via VoxTracker)
 /// - Clean subscribe/unsubscribe on each rebuild
+/// - Auto-dispose of watch() subscriptions created in ready()
 /// - Lifecycle hooks (ready, background, foreground, dispose)
 class _VoxScreenState extends flutter.State<_VoxScreenWidget>
     with WidgetsBindingObserver {
   late final VoidCallback _rebuildCallback;
   final Set<VoxSignal> _subscribedSignals = {};
+  List<VoidCallback> _watchDisposers = const [];
 
   @override
   void initState() {
@@ -57,7 +60,10 @@ class _VoxScreenState extends flutter.State<_VoxScreenWidget>
     _rebuildCallback = _scheduleRebuild;
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Open auto-dispose scope, call ready(), collect any watch() disposers.
+      VoxAutoDispose.begin();
       widget.screen.ready();
+      _watchDisposers = VoxAutoDispose.end();
     });
   }
 
@@ -109,6 +115,10 @@ class _VoxScreenState extends flutter.State<_VoxScreenWidget>
   @override
   void dispose() {
     _unsubscribeAll();
+    // Auto-dispose all watch() subscriptions from ready().
+    for (final d in _watchDisposers) {
+      d();
+    }
     widget.screen.onDispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
