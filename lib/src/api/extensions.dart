@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../core/animation/animator.dart';
 import '../core/ui/layout.dart';
 
 // ---------------------------------------------------------------------------
@@ -108,8 +109,12 @@ extension VoxWidgetExtensions on Widget {
   /// Center this widget.
   Widget get center => Center(child: this);
 
-  /// Make scrollable.
+  /// Make vertically scrollable.
   Widget get scrollable => SingleChildScrollView(child: this);
+
+  /// Make horizontally scrollable.
+  Widget get hscrollable =>
+      SingleChildScrollView(scrollDirection: Axis.horizontal, child: this);
 
   // ---------------------------------------------------------------------------
   // Visibility
@@ -218,6 +223,18 @@ extension VoxWidgetExtensions on Widget {
       borderRadius: BorderRadius.circular(radius), child: this);
 
   // ---------------------------------------------------------------------------
+  // Transform
+  // ---------------------------------------------------------------------------
+
+  /// Scale this widget by a runtime factor.
+  ///
+  /// Use with [anim()] for smooth reactive scaling:
+  /// ```dart
+  /// anim(pulse.val, builder: (v) => icon(Icons.star).scaleBy(v))
+  /// ```
+  Widget scaleBy(double factor) => Transform.scale(scale: factor, child: this);
+
+  // ---------------------------------------------------------------------------
   // Constraints
   // ---------------------------------------------------------------------------
 
@@ -238,4 +255,34 @@ extension VoxWidgetExtensions on Widget {
   Widget minH(double height) =>
       ConstrainedBox(
           constraints: BoxConstraints(minHeight: height), child: this);
+
+  // ---------------------------------------------------------------------------
+  // Animation
+  // ---------------------------------------------------------------------------
+
+  /// Play a one-shot enter animation on first mount.
+  ///
+  /// Use the built-in presets: [fade], [scale], [slide.fromBottom], etc.
+  ///
+  /// ```dart
+  /// label("Hello").animate(fade)
+  /// label("Hello").animate(slide.fromBottom).duration(200)
+  /// card.animate(scale)
+  /// ```
+  VoxAnimatedWidget animate(VoxAnimPreset preset) =>
+      VoxAnimatedWidget(preset: preset, child: this);
+
+  // ---------------------------------------------------------------------------
+  // Hero
+  // ---------------------------------------------------------------------------
+
+  /// Wrap with a [Hero] for shared-element transitions between routes.
+  ///
+  /// [tag] must be unique per hero pair. Matching tags animate between screens.
+  ///
+  /// ```dart
+  /// img("avatar.png").hero("user-avatar")
+  /// label(product.name).hero("product-title-${product.id}")
+  /// ```
+  Widget hero(Object tag) => Hero(tag: tag, child: this);
 }

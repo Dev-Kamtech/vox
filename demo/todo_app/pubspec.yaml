@@ -1,0 +1,45 @@
+name: todo_app
+description: "vox demo — TodoApp. State, forms, storage, navigation, tabs."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+  vox:
+    path: ../../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.0
+  flutter_native_splash: ^2.4.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/icon.png'
+  adaptive_icon_background: '#6C63FF'
+  adaptive_icon_foreground: 'assets/icon.png'
+  web:
+    generate: true
+    image_path: 'assets/icon.png'
+
+flutter_native_splash:
+  color: '#0A0A12'
+  color_dark: '#0A0A12'
+  image: 'assets/icon.png'
+  image_dark: 'assets/icon.png'
+  android: true
+  ios: true
+  web: true
+  fullscreen: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
