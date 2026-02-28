@@ -40,9 +40,11 @@ dependencies:
   # WebSocket (dart:io built-in, but web_socket_channel for cross-platform)
   web_socket_channel: ^3.0.0
 
-dev_dependencies:
+  # Testing utilities (in lib/ so voxTest() is available as a library import)
   flutter_test:
     sdk: flutter
+
+dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
