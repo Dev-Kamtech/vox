@@ -1,3 +1,16 @@
+## 0.6.0
+
+- **Demo apps**: Three production-quality example apps — `demo/todo_app` (local persistence), `demo/news_reader` (real Dev.to API), `demo/chat_app` (Gemini AI chatbot with per-user key via `saveSecure()`).
+- **New layout APIs**: `scaffold()`, `safe()`, `card()`, `list()`, `swipeable()`, `hscroll()`, `gap()`, `hgap()`, `spacer`, `divider`, `indexed()`, `expanded()`.
+- **New widget APIs**: `fab()`, `switchTile()`, `tile()`, `progress()`, `ring()`, `loader()`.
+- **VoxLabel weights**: `.semibold`, `.medium`, `.heavy`, `.thin` in addition to `.bold`.
+- **VoxLabel extras**: `.letterSpacing()`, `.maxLines()`, `.ellipsis`, `.alignTo()`.
+- **Widget extensions**: `.scaleBy(double)` for reactive runtime scaling with `anim()`. `.hscrollable` for horizontal scroll. `.maxW()`, `.minW()`, `.minH()`.
+- **`list(reverse: true)`**: Reversed list for chat-style UIs (newest message at bottom).
+- **VoxModel redesign**: Prototype-factory pattern — `decode(Map)` replaces `fromJson`. `VoxData` extension on `Map<String, dynamic>` with `.str()`, `.flag()`, `.date()`, `.n()` helpers.
+- **Numeric padding everywhere**: All layout/widget functions accept `pad`, `padH`, `padV`, `padTop`, `padBottom`, `padLeft`, `padRight` as `double?` — no raw `EdgeInsets` needed.
+- **Bug fix**: `VoxField` (`TextEditingController`) now uses a fresh `TextEditingValue` when resetting/clearing a field, preventing a Flutter assertion crash when the cursor offset exceeded the new text length.
+
 ## 0.5.0
 
 - **Phase 9 — Testing**: `voxTest()` wraps `testWidgets` with a `VoxTester` API. `tester.render(screen)`, `tester.tap(btn('+'))`, `tester.type(field, text)`, `tester.expect(state, matcher)`. Smart matchers: `isVisible`, `isHidden`, `findsCount(n)`. Import via `package:vox/testing.dart` — separate from main barrel, test files only.
