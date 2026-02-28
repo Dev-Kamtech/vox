@@ -163,6 +163,12 @@ class VoxThemeController extends ChangeNotifier {
   // Token shortcuts (vox.theme.primary, vox.theme.text, etc.)
   // ---------------------------------------------------------------------------
 
+  /// True when the current theme mode is dark.
+  bool get isDark => _mode == ThemeMode.dark;
+
+  /// True when the current theme mode is light.
+  bool get isLight => _mode == ThemeMode.light;
+
   /// Primary brand color.
   Color get primary => _theme.primary;
 

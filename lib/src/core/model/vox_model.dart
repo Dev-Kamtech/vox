@@ -5,36 +5,29 @@ library;
 // VoxModel
 // ---------------------------------------------------------------------------
 
-/// Base class for data models with JSON serialization.
+/// Base class for data models with JSON decode/encode.
 ///
-/// Extend this class to create type-safe, JSON-aware data models
-/// that integrate cleanly with vox's networking layer.
+/// Extend this to create type-safe models that work with vox's HTTP layer.
 ///
 /// ```dart
 /// class User extends VoxModel {
 ///   final String name;
 ///   final String email;
-///   final int age;
 ///
-///   const User({required this.name, required this.email, required this.age});
+///   const User({required this.name, required this.email});
 ///
 ///   @override
-///   User fromJson(Map<String, dynamic> json) => User(
-///     name:  json['name']  as String,
-///     email: json['email'] as String,
-///     age:   json['age']   as int,
+///   User decode(Map<String, dynamic> j) => User(
+///     name:  j.str('name'),
+///     email: j.str('email'),
 ///   );
 ///
 ///   @override
-///   Map<String, dynamic> toJson() => {
-///     'name':  name,
-///     'email': email,
-///     'age':   age,
-///   };
+///   Map<String, dynamic> encode() => {'name': name, 'email': email};
 /// }
 /// ```
 ///
-/// Once defined, use with `fetch()`:
+/// Use with `fetch()`:
 /// ```dart
 /// final user = state<User?>(null);
 /// fetch('https://api.com/me').model(User()) >> user;
@@ -42,51 +35,92 @@ library;
 abstract class VoxModel {
   const VoxModel();
 
-  /// Create a new instance of this model from a [json] map.
+  /// Create an instance from a decoded JSON map.
   ///
-  /// Implement this as a factory that returns the concrete subtype:
   /// ```dart
   /// @override
-  /// User fromJson(Map<String, dynamic> json) => User(name: json['name']);
+  /// User decode(Map<String, dynamic> j) => User(name: j.str('name'));
   /// ```
-  VoxModel fromJson(Map<String, dynamic> json);
+  VoxModel decode(Map<String, dynamic> json);
 
   /// Convert this model to a JSON map.
   ///
   /// ```dart
   /// @override
-  /// Map<String, dynamic> toJson() => {'name': name, 'email': email};
+  /// Map<String, dynamic> encode() => {'name': name, 'email': email};
   /// ```
-  Map<String, dynamic> toJson();
+  Map<String, dynamic> encode();
 
-  /// Parse a list of JSON objects into a list of this model type.
+  /// Parse a list of JSON objects into typed models.
   ///
   /// ```dart
-  /// final users = User().listFromJson(jsonList);
+  /// final users = User().decodeAll(jsonList);
   /// ```
-  List<T> listFromJson<T extends VoxModel>(List<dynamic> jsonList) {
-    return jsonList
-        .map((item) => fromJson(item as Map<String, dynamic>) as T)
-        .toList();
-  }
+  List<T> decodeAll<T extends VoxModel>(List<dynamic> list) =>
+      list.map((e) => decode(e as Map<String, dynamic>) as T).toList();
 
-  /// Deep-copy this model with updated fields via [toJson] / [fromJson].
+  /// Deep-copy this model with updated fields.
   ///
   /// ```dart
   /// final updated = user.copyWith({'name': 'New Name'});
   /// ```
-  T copyWith<T extends VoxModel>(Map<String, dynamic> overrides) {
-    final json = {...toJson(), ...overrides};
-    return fromJson(json) as T;
-  }
+  T copyWith<T extends VoxModel>(Map<String, dynamic> overrides) =>
+      decode({...encode(), ...overrides}) as T;
 
   @override
-  String toString() => 'VoxModel(${toJson()})';
+  String toString() => 'VoxModel(${encode()})';
 
   @override
   bool operator ==(Object other) =>
-      other is VoxModel && other.toJson().toString() == toJson().toString();
+      other is VoxModel &&
+      other.encode().toString() == encode().toString();
 
   @override
-  int get hashCode => toJson().toString().hashCode;
+  int get hashCode => encode().toString().hashCode;
+}
+
+// ---------------------------------------------------------------------------
+// VoxData — Map accessor helpers
+// ---------------------------------------------------------------------------
+
+/// Convenience extension for reading typed values from a JSON map.
+///
+/// Eliminates verbose casting and provides safe defaults.
+///
+/// ```dart
+/// final name = j.str('name');          // String, default ''
+/// final age  = j.n('age');             // int, default 0
+/// final ok   = j.flag('active');       // bool, default false
+/// final price = j.dec('price');        // double, default 0.0
+/// final tags  = j.arr('tags');         // List, default []
+/// final meta  = j.obj('meta');         // Map, default {}
+/// final date  = j.date('createdAt');   // DateTime, default now
+/// ```
+extension VoxData on Map<String, dynamic> {
+  /// Read a String value (defaults to '').
+  String str(String key, [String fallback = '']) =>
+      (this[key] as String?) ?? fallback;
+
+  /// Read a bool value (defaults to false).
+  bool flag(String key, [bool fallback = false]) =>
+      (this[key] as bool?) ?? fallback;
+
+  /// Read an int value (defaults to 0).
+  int n(String key, [int fallback = 0]) =>
+      (this[key] as num?)?.toInt() ?? fallback;
+
+  /// Read a double value (defaults to 0.0).
+  double dec(String key, [double fallback = 0.0]) =>
+      (this[key] as num?)?.toDouble() ?? fallback;
+
+  /// Read a List (defaults to empty list).
+  List<dynamic> arr(String key) => (this[key] as List<dynamic>?) ?? [];
+
+  /// Read a nested Map (defaults to empty map).
+  Map<String, dynamic> obj(String key) =>
+      (this[key] as Map<String, dynamic>?) ?? {};
+
+  /// Read a DateTime from an ISO 8601 string (defaults to now).
+  DateTime date(String key) =>
+      DateTime.tryParse(this[key] as String? ?? '') ?? DateTime.now();
 }

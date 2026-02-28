@@ -109,8 +109,12 @@ extension VoxWidgetExtensions on Widget {
   /// Center this widget.
   Widget get center => Center(child: this);
 
-  /// Make scrollable.
+  /// Make vertically scrollable.
   Widget get scrollable => SingleChildScrollView(child: this);
+
+  /// Make horizontally scrollable.
+  Widget get hscrollable =>
+      SingleChildScrollView(scrollDirection: Axis.horizontal, child: this);
 
   // ---------------------------------------------------------------------------
   // Visibility
@@ -217,6 +221,18 @@ extension VoxWidgetExtensions on Widget {
   /// Clip to rectangle with optional radius.
   Widget clip({double radius = 0}) => ClipRRect(
       borderRadius: BorderRadius.circular(radius), child: this);
+
+  // ---------------------------------------------------------------------------
+  // Transform
+  // ---------------------------------------------------------------------------
+
+  /// Scale this widget by a runtime factor.
+  ///
+  /// Use with [anim()] for smooth reactive scaling:
+  /// ```dart
+  /// anim(pulse.val, builder: (v) => icon(Icons.star).scaleBy(v))
+  /// ```
+  Widget scaleBy(double factor) => Transform.scale(scale: factor, child: this);
 
   // ---------------------------------------------------------------------------
   // Constraints
