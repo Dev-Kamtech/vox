@@ -188,17 +188,24 @@ class _VoxInputWidgetState extends flutter.State<_VoxInputWidget> {
   }
 
   void _onSignalChanged() {
+    if (!mounted) return;
     final newText = widget.field._value.peek;
     if (_ctrl.text == newText) return;
     _syncing = true;
-    // Use a fresh TextEditingValue so the cursor resets to the end of the
-    // new text. copyWith() would keep the old cursor offset, which causes
-    // a Flutter assertion when clearing a field (offset > new text length).
-    _ctrl.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: newText.length),
-    );
-    _syncing = false;
+    try {
+      // Fresh TextEditingValue — never copyWith(), which preserves the old
+      // cursor offset and asserts when the new text is shorter (e.g. clear()).
+      _ctrl.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    } catch (_) {
+      // Last-resort safety: if Flutter still asserts for any reason, collapse
+      // to a known-safe empty state rather than crashing the developer's app.
+      _ctrl.value = TextEditingValue.empty;
+    } finally {
+      _syncing = false;
+    }
   }
 
   void _onErrorChanged() {
